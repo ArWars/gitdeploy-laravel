@@ -1,6 +1,6 @@
 {
   "name": "arwars/gitdeploy-laravel",
-  "description": "Ayuda a automatizar la implementación de proyectos en servidores mediante el uso de enlaces web de Git.",
+  "description": "Ayuda a automatizar la implementación de proyectos en servidores mediante el uso de enlaces web de Git, para laravel 7, 8 y 9.\n Codigo Original: https://github.com/orphans/git-deploy-laravel",
   "license": "MIT",
   "autoload": {
     "psr-4": {
@@ -8,7 +8,7 @@
     }
   },
   "require": {
-    "illuminate/support": "^6|^7|^8|^9"
+    "illuminate/support": "^7|^8|^9"
   },
   "extra": {
     "laravel": {
