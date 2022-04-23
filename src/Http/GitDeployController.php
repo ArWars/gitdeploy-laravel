@@ -17,13 +17,6 @@ class GitDeployController extends Controller
 {
     public function gitHook(Request $request)
     {
-
-        // create a log channel
-        $channel = Log::build([
-            'driver' => 'single',
-            'path' => storage_path('logs/gitdeploy.log'),
-          ]);
-
         $git_path = !empty(config('gitdeploy.git_path')) ? config('gitdeploy.git_path') : 'git';
         $git_remote = !empty(config('gitdeploy.remote')) ? config('gitdeploy.remote') : 'origin';
 
@@ -34,7 +27,7 @@ class GitDeployController extends Controller
             $allowed_sources = array_map([$this, 'formatIPAddress'], config('gitdeploy.allowed_sources'));
 
                 if (!in_array($remote_ip, $allowed_sources)) {
-                    Log::stack(['slack', $channel])->error('Request must come from an approved IP');
+                    Log::error('Request must come from an approved IP');
                         return Response::json([
                             'success' => false,
                             'message' => 'Request must come from an approved IP',
@@ -45,7 +38,7 @@ class GitDeployController extends Controller
             // Collect the posted data
             $postdata = json_decode($request->getContent(), TRUE);
             if (empty($postdata)) {
-                Log::stack(['slack', $channel])->error('Web hook data does not look valid');
+                Log::error('Web hook data does not look valid');
                     return Response::json([
                         'success' => false,
                         'message' => 'Web hook data does not look valid',
@@ -55,7 +48,7 @@ class GitDeployController extends Controller
         // Check the config's directory
         $repo_dir = config('gitdeploy.repo_path');
         if (!empty($repo_dir) && !file_exists($repo_dir.'/.git/config')) {
-            Log::stack(['slack', $channel])->error('Invalid repo path in config');
+            Log::error('Invalid repo path in config');
             return Response::json([
                 'success' => false,
                 'message' => 'Invalid repo path in config',
@@ -80,7 +73,7 @@ class GitDeployController extends Controller
 
         // So, do we have something valid?
         if ($repo_dir === '/' || !file_exists($repo_dir.'/.git/config')) {
-            Log::stack(['slack', $channel])->error('Could not determine the repo path');
+            Log::error('Could not determine the repo path');
             return Response::json([
                 'success' => false,
                 'message' => 'Could not determine the repo path',
@@ -96,7 +89,7 @@ class GitDeployController extends Controller
              * Check for valid header
              */
             if (!$header_data) {
-                Log::stack(['slack', $channel])->error('Could not find header with name ' . $header);
+                Log::error('Could not find header with name ' . $header);
                 return Response::json([
                     'success' => false,
                     'message' => 'Could not find header with name ' . $header,
@@ -107,7 +100,7 @@ class GitDeployController extends Controller
              * Sanity check for key
              */
             if (empty(config('gitdeploy.secret_key'))) {
-                Log::stack(['slack', $channel])->error('Secret was set to true but no secret_key specified in config');
+                Log::error('Secret was set to true but no secret_key specified in config');
                 return Response::json([
                     'success' => false,
                     'message' => 'Secret was set to true but no secret_key specified in config',
@@ -119,7 +112,7 @@ class GitDeployController extends Controller
              */
             if (config('gitdeploy.secret_type') == 'plain') {
                 if ($header_data !== config('gitdeploy.secret_key')) {
-                    Log::stack(['slack', $channel])->error('Secret did not match');
+                    Log::error('Secret did not match');
                     return Response::json([
                         'success' => false,
                         'message' => 'Secret did not match',
@@ -132,7 +125,7 @@ class GitDeployController extends Controller
              */
             else if (config('gitdeploy.secret_type') == 'mac') {
                 if (!hash_equals('sha1=' . hash_hmac('sha1', $request->getContent(), config('gitdeploy.secret')))){
-                    Log::stack(['slack', $channel])->error('Secret did not match');
+                    Log::error('Secret did not match');
                     return Response::json([
                         'success' => false,
                         'message' => 'Secret did not match',
@@ -144,7 +137,7 @@ class GitDeployController extends Controller
              * Catch all for anything odd in config
              */
             else {
-                Log::stack(['slack', $channel])->error('Unsupported secret type');
+                Log::error('Unsupported secret type');
                 return Response::json([
                     'success' => false,
                     'message' => 'Unsupported secret type',
@@ -164,7 +157,7 @@ class GitDeployController extends Controller
 
         // If the refs don't matchthis branch, then no need to do a git pull
         if ($current_branch !== $pushed_branch){
-            Log::stack(['slack', $channel])->warning('Pushed refs do not match current branch');
+            Log::warning('Pushed refs do not match current branch');
             return Response::json([
                 'success' => false,
                 'message' => 'Pushed refs do not match current branch',
@@ -173,12 +166,12 @@ class GitDeployController extends Controller
 
         // At this point we're happy everything is OK to pull, lets put Laravel into Maintenance mode.
         if (!empty(config('gitdeploy.maintenance_mode'))) {
-            Log::stack(['slack', $channel])->info('Gitdeploy: putting site into maintenance mode');
+            Log::info('Gitdeploy: putting site into maintenance mode');
             Artisan::call('down');
         }
 
         // git pull
-        Log::stack(['slack', $channel])->info('Gitdeploy: Pulling latest code on to server');
+        Log::info('Gitdeploy: Pulling latest code on to server');
         $cmd = escapeshellcmd($git_path) . ' --git-dir=' . escapeshellarg($repo_dir . '/.git') . ' --work-tree=' . escapeshellarg($repo_dir) . ' pull ' . escapeshellarg($git_remote) . ' ' . escapeshellarg($current_branch) . ' > ' . escapeshellarg($repo_dir . '/storage/logs/gitdeploy.log');
 
         $server_response = [
@@ -190,13 +183,13 @@ class GitDeployController extends Controller
         // Put site back up and end maintenance mode
         if (!empty(config('gitdeploy.maintenance_mode'))) {
             Artisan::call('up');
-            Log::stack(['slack', $channel])->info('Gitdeploy: taking site out of maintenance mode');
+            Log::info('Gitdeploy: taking site out of maintenance mode');
         }
 
         // Fire Event that git were deployed
         if (!empty(config('gitdeploy.fire_event'))) {
             event(new GitDeployed($postdata['commits']));
-            Log::stack(['slack', $channel])->debug('Gitdeploy: Event GitDeployed fired');
+            Log::debug('Gitdeploy: Event GitDeployed fired');
         }
 
         if (!empty(config('gitdeploy.email_recipients'))) {
