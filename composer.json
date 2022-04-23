@@ -1,0 +1,20 @@
+{
+  "name": "arwars/gitdeploy-laravel",
+  "description": "Ayuda a automatizar la implementación de proyectos en servidores mediante el uso de enlaces web de Git.",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "ArWars\\GitDeploy\\": "src"
+    }
+  },
+  "require": {
+    "illuminate/support": "^6|^7|^8|^9"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "ArWars\\GitDeploy\\GitDeployServiceProvider"
+      ]
+    }
+  }
+}
