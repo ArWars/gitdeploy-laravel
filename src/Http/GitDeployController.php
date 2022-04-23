@@ -173,12 +173,12 @@ class GitDeployController extends Controller
 
         // At this point we're happy everything is OK to pull, lets put Laravel into Maintenance mode.
         if (!empty(config('gitdeploy.maintenance_mode'))) {
-            Log::info('Gitdeploy: putting site into maintenance mode');
+            Log::stack(['slack', $channel])->info('Gitdeploy: putting site into maintenance mode');
             Artisan::call('down');
         }
 
         // git pull
-        Log::info('Gitdeploy: Pulling latest code on to server');
+        Log::stack(['slack', $channel])->info('Gitdeploy: Pulling latest code on to server');
         $cmd = escapeshellcmd($git_path) . ' --git-dir=' . escapeshellarg($repo_dir . '/.git') . ' --work-tree=' . escapeshellarg($repo_dir) . ' pull ' . escapeshellarg($git_remote) . ' ' . escapeshellarg($current_branch) . ' > ' . escapeshellarg($repo_dir . '/storage/logs/gitdeploy.log');
 
         $server_response = [
@@ -190,13 +190,13 @@ class GitDeployController extends Controller
         // Put site back up and end maintenance mode
         if (!empty(config('gitdeploy.maintenance_mode'))) {
             Artisan::call('up');
-            Log::info('Gitdeploy: taking site out of maintenance mode');
+            Log::stack(['slack', $channel])->info('Gitdeploy: taking site out of maintenance mode');
         }
 
         // Fire Event that git were deployed
         if (!empty(config('gitdeploy.fire_event'))) {
             event(new GitDeployed($postdata['commits']));
-            Log::debug('Gitdeploy: Event GitDeployed fired');
+            Log::stack(['slack', $channel])->debug('Gitdeploy: Event GitDeployed fired');
         }
 
         if (!empty(config('gitdeploy.email_recipients'))) {
