@@ -15,6 +15,30 @@ use ArWars\GitDeploy\Events\GitDeployed;
 
 class GitDeployController extends Controller
 {
+    public function getToken(Request $request, $type)
+    {
+        switch($type){
+            case 'mac':
+                $header = $this->header('Authorization', '');
+                if (Str::startsWith($header, 'Bearer ')) {
+                    return Str::substr($header, 7);
+                }
+                break;
+            case '256':
+                $header = $this->header('Authorization', '');
+                if (Str::startsWith($header, 'Bearer ')) {
+                    return Str::substr($header, 7);
+                }
+                break;
+            default:
+                $header = $this->header('Authorization', '');
+                if (Str::startsWith($header, 'Bearer ')) {
+                    return Str::substr($header, 7);
+                }
+                break;
+        }
+    }
+
     public function gitHook(Request $request)
     {
         $git_path = !empty(config('gitdeploy.git_path')) ? config('gitdeploy.git_path') : 'git';
@@ -95,6 +119,7 @@ class GitDeployController extends Controller
                     'message' => 'Could not find header with name ' . $header,
                 ], 401);
             }
+            
 
             /**
              * Sanity check for key
@@ -124,24 +149,29 @@ class GitDeployController extends Controller
              * Check hmac secrets (Github)
              */
             else if (config('gitdeploy.secret_type') == 'mac') {
-                if (!hash_equals('sha1=' . hash_hmac('sha1', $request->getContent(), config('gitdeploy.secret')))){
-                    Log::error('Secret did not match');
+                if (!isset($_SERVER['HTTP_X_HUB_SIGNATURE'])) {
                     return Response::json([
                         'success' => false,
-                        'message' => 'Secret did not match',
+                        'message' => "X-Hub-Signature' is missing.",
+                    ], 401);
+                } elseif (!extension_loaded('hash')) {
+                    return Response::json([
+                        'success' => false,
+                        'message' => "Missing 'hash' extension to check the secret code validity.",
                     ], 401);
                 }
-            }
-            
-            /**
-             * Check hmac secrets (Github)
-             */
-            else if (config('gitdeploy.secret_type') == '256') {
-                if (!hash_equals('sha256=' . hash_hmac('sha256', $request->getContent(), config('gitdeploy.secret')))){
-                    Log::error('Secret did not match');
+                list($algo, $hash) = explode('=', $_SERVER['HTTP_X_HUB_SIGNATURE'], 2) + array('', '');
+                if (!in_array($algo, hash_algos(), TRUE)) {
                     return Response::json([
                         'success' => false,
-                        'message' => 'Secret did not match',
+                        'message' => "Hash algorithm '$algo' is not supported.",
+                    ], 401);
+                }
+                $rawPost = file_get_contents('php://input');
+                if (!hash_equals($hash, hash_hmac($algo, $rawPost, config('gitdeploy.secret_key')))) {
+                    return Response::json([
+                        'success' => false,
+                        'message' => "Hook secret does not match.",
                     ], 401);
                 }
             }
