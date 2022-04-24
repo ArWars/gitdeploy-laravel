@@ -132,6 +132,19 @@ class GitDeployController extends Controller
                     ], 401);
                 }
             }
+            
+            /**
+             * Check hmac secrets (Github)
+             */
+            else if (config('gitdeploy.secret_type') == '256') {
+                if (!hash_equals('sha256=' . hash_hmac('sha256', $request->getContent(), config('gitdeploy.secret')))){
+                    Log::error('Secret did not match');
+                    return Response::json([
+                        'success' => false,
+                        'message' => 'Secret did not match',
+                    ], 401);
+                }
+            }
 
             /**
              * Catch all for anything odd in config
