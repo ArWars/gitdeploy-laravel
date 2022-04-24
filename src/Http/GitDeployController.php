@@ -216,6 +216,7 @@ class GitDeployController extends Controller
         // git pull
         Log::info('Gitdeploy: Pulling latest code on to server');
         $cmd = escapeshellcmd($git_path) . ' --git-dir=' . escapeshellarg($repo_dir . '/.git') . ' --work-tree=' . escapeshellarg($repo_dir) . ' pull ' . escapeshellarg($git_remote) . ' ' . escapeshellarg($current_branch) . ' > ' . escapeshellarg($repo_dir . '/storage/logs/gitdeploy.log');
+        Log::info('Gitdeploy cmd: '.$cmd);
 
         $server_response = [
             'cmd' => $cmd,
