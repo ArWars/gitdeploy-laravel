@@ -148,7 +148,7 @@ class GitDeployController extends Controller
             /**
              * Check hmac secrets (Github)
              */
-            else if (config('gitdeploy.secret_type') == 'mac') {
+            else if (config('gitdeploy.secret_type') == 'hmac') {
                 if (!isset($_SERVER['HTTP_X_HUB_SIGNATURE'])) {
                     return Response::json([
                         'success' => false,
